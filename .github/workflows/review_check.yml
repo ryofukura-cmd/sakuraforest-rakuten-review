@@ -1,0 +1,33 @@
+name: 楽天レビューチェッカー
+
+on:
+  schedule:
+    # JST 9:00〜18:00 を毎時実行（UTC 0:00〜9:00）
+    - cron: '0 0-9 * * *'
+  workflow_dispatch:  # 手動実行ボタン
+
+env:
+  SPREADSHEET_ID: '18htlkdwHKncu8zKgtytQVGqm2SHdSteqI25cFTACtg8'
+  CHATWORK_ROOM_ID: '436382401'
+
+jobs:
+  check-reviews:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run review checker
+        env:
+          CHATWORK_API_TOKEN: ${{ secrets.CHATWORK_API_TOKEN }}
+          GOOGLE_CREDENTIALS_JSON: ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
+        run: python rakuten_review_checker.py
