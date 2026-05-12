@@ -86,16 +86,11 @@ def save_notified(gc, product_name, h):
     )
 
 
-# ── 時間ウィンドウ ────────────────────────────────────────────────
+# ── チェック対象期間 ──────────────────────────────────────────────
 
-def get_time_window():
-    now  = datetime.now(JST)
-    base = now.replace(minute=0, second=0, microsecond=0)
-    if now.hour == 9:
-        start = (now - timedelta(days=1)).replace(hour=18, minute=0, second=0, microsecond=0)
-    else:
-        start = base - timedelta(hours=1)
-    return start, base
+def get_check_since():
+    """過去2日分のレビューを対象にする（古いレビューの誤通知防止）"""
+    return datetime.now(JST) - timedelta(days=2)
 
 
 # ── 日付パース ────────────────────────────────────────────────────
@@ -138,7 +133,7 @@ def build_review_url(review_url):
     return f'{base}?sort=6'
 
 
-def scrape_reviews(review_url, start_dt, end_dt, notified):
+def scrape_reviews(review_url, since_dt, notified):
     results = []
     url = build_review_url(review_url)
     print(f'  URL: {url}')
@@ -211,15 +206,11 @@ def scrape_reviews(review_url, start_dt, end_dt, notified):
                     if not rev_dt:
                         continue
 
-                    # 新着順なので古いレビューに達したら終了
-                    if rev_dt < start_dt:
+                    # 新着順なので2日より古いレビューに達したら終了
+                    if rev_dt < since_dt:
                         print(f'  {dt_text} は対象期間より古い → 終了')
-                        results = results  # 現在の結果を保持
                         browser.close()
                         return results
-
-                    if rev_dt >= end_dt:
-                        continue
 
                     # レビュー本文（長い行を優先）
                     lines = [l.strip() for l in full_text.split('\n') if len(l.strip()) > 15]
@@ -299,8 +290,8 @@ def notify_chatwork(product_name, review, thumbnail_url):
 # ── メイン ────────────────────────────────────────────────────────
 
 def main():
-    start_dt, end_dt = get_time_window()
-    print(f'チェック期間: {start_dt:%Y-%m-%d %H:%M} ～ {end_dt:%Y-%m-%d %H:%M} JST\n')
+    since_dt = get_check_since()
+    print(f'チェック対象: {since_dt:%Y-%m-%d %H:%M} 以降のレビュー\n')
 
     gc = setup_gspread()
     ensure_sheets(gc)
@@ -320,7 +311,7 @@ def main():
             continue
 
         thumb   = fetch_thumbnail(product_url)
-        reviews = scrape_reviews(review_url, start_dt, end_dt, notified)
+        reviews = scrape_reviews(review_url, since_dt, notified)
 
         if not reviews:
             print('  新着レビューなし')
