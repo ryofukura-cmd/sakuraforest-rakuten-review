@@ -156,9 +156,10 @@ def scrape_reviews(review_url, since_dt, notified):
             return []
 
         start = m.end()
-        end = html.find('</script>', start)
-        json_str = html[start:end].strip().rstrip(';')
-        data = json.loads(json_str)
+        while start < len(html) and html[start] in ' \t\n\r':
+            start += 1
+        decoder = json.JSONDecoder()
+        data, _ = decoder.raw_decode(html, start)
 
         item_reviews = data.get('reviews', {}).get('itemReviews', {})
         print(f'  レビュー件数（全体）: {len(item_reviews)}')
