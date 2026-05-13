@@ -85,7 +85,7 @@ def save_notified_batch(ws, product_name, reviews):
     rows = []
     for rv in reviews:
         rating = rv.get('rating', 0)
-        stars  = ('★' * rating + '☆' * (5 - rating)) if rating else '未評価'
+        stars  = (f'{"★" * rating}{"☆" * (5 - rating)} {rating}点') if rating else '未評価'
         rows.append([
             product_name,
             rv.get('date', ''),
@@ -215,11 +215,11 @@ def build_message(product_reviews):
     """
     product_reviews: [{'name': str, 'display_url': str, 'reviews': [...]}, ...]
     """
-    SEP = '━━━━━━━━━━━━━━━━━━'
+    SEP = '━━━━━━━━━━━━━━'
     total = sum(len(p['reviews']) for p in product_reviews)
 
     lines = [f'[info][title]【楽天市場レビュー通知】新しいレビューが {total}件 届きました[/title]', '']
-    lines += ['\\ お客様よりレビューをいただきました /', '']
+    lines += ['\\ お客様のレビュー速報 /', '']
 
     # 全体サマリー
     lines += [SEP, '【全体】', SEP, '']
