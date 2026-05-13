@@ -50,9 +50,9 @@ def ensure_sheets(gc):
         print('シート「商品リスト」を作成しました')
 
     if '通知済み' not in existing:
-        ws = sh.add_worksheet('通知済み', rows=5000, cols=6)
-        ws.update('A1:F1', [['商品名', 'レビューハッシュ', '通知日時', 'レビュー日付', '評価', 'レビュー内容']])
-        ws.format('A1:F1', {'textFormat': {'bold': True}})
+        ws = sh.add_worksheet('通知済み', rows=5000, cols=10)
+        ws.update('A1:J1', [['商品名', 'レビュー日付', '評価', 'タイトル', '本文', '投稿者名', '性別', '年齢', '通知日時', 'レビューハッシュ']])
+        ws.format('A1:J1', {'textFormat': {'bold': True}})
         print('シート「通知済み」を作成しました')
 
 
@@ -77,15 +77,25 @@ def load_products(gc):
 
 def load_notified(gc):
     rows = gc.open_by_key(SPREADSHEET_ID).worksheet('通知済み').get_all_values()
-    return set(r[1] for r in rows[1:] if len(r) >= 2)
+    # ハッシュはJ列（index 9）
+    return set(r[9] for r in rows[1:] if len(r) >= 10)
 
 
 def save_notified(gc, product_name, h, review):
-    stars = ('★' * review['rating'] + '☆' * (5 - review['rating'])) if review.get('rating') else '未評価'
-    gc.open_by_key(SPREADSHEET_ID).worksheet('通知済み').append_row(
-        [product_name, h, datetime.now(JST).strftime('%Y-%m-%d %H:%M'),
-         review.get('date', ''), stars, review.get('text', '')]
-    )
+    rating = review.get('rating', 0)
+    stars = ('★' * rating + '☆' * (5 - rating)) if rating else '未評価'
+    gc.open_by_key(SPREADSHEET_ID).worksheet('通知済み').append_row([
+        product_name,
+        review.get('date', ''),
+        stars,
+        review.get('title', ''),
+        review.get('body', review.get('text', '')),
+        review.get('reviewer_name', ''),
+        review.get('gender', ''),
+        review.get('age', ''),
+        datetime.now(JST).strftime('%Y-%m-%d %H:%M'),
+        h,
+    ])
 
 
 # ── チェック対象期間 ──────────────────────────────────────────────
@@ -159,6 +169,8 @@ def _parse_review_json(data, since_dt, notified):
 
     candidates = find_reviews(data)
     print(f'    JSONレビュー候補: {len(candidates)} 件')
+    if candidates:
+        print(f'    JSONキー例: {list(candidates[0].keys())[:15]}')
 
     for item in candidates:
         try:
@@ -171,39 +183,83 @@ def _parse_review_json(data, since_dt, notified):
                         dt_text = val
                         break
 
-            # YYYY-MM-DD 形式を変換
             if re.match(r'\d{4}-\d{2}-\d{2}', dt_text):
                 ymd = dt_text[:10].split('-')
                 dt_text = f'{ymd[0]}年{int(ymd[1])}月{int(ymd[2])}日'
 
             rev_dt = parse_date(dt_text)
-            if not rev_dt:
-                continue
-            if rev_dt < since_dt:
+            if not rev_dt or rev_dt < since_dt:
                 continue
 
-            # 本文
-            text = ''
+            # タイトル（短いテキストキー優先）
+            title = ''
             for k in item:
-                if re.search(r'text|body|comment|review|内容|口コミ', k, re.I):
+                if re.search(r'title|Title|タイトル|subject|Subject', k):
                     v = str(item[k]).strip()
-                    if len(v) > len(text):
-                        text = v
-            if not text:
+                    if v:
+                        title = v
+                        break
+
+            # 本文（長いテキストキー優先）
+            body = ''
+            for k in item:
+                if re.search(r'comment|Comment|body|Body|text|Text|内容|口コミ|レビュー', k):
+                    v = str(item[k]).strip()
+                    if len(v) > len(body):
+                        body = v
+
+            if not body and not title:
                 continue
 
             # 評価
             rating = 0
             for k in item:
-                if re.search(r'rating|score|star|評価|点', k, re.I):
+                if re.search(r'rating|Rating|score|Score|star|Star|評価|点', k):
                     try:
                         rating = int(float(str(item[k])))
                     except Exception:
                         pass
 
-            h = hashlib.md5(f'{dt_text}{text}'.encode()).hexdigest()
+            # 投稿者名
+            reviewer_name = ''
+            for k in item:
+                if re.search(r'nick|Nick|name|Name|user|User|author|Author|投稿者|ニックネーム', k):
+                    v = str(item[k]).strip()
+                    if v and v != 'None':
+                        reviewer_name = v
+                        break
+
+            # 性別
+            gender = ''
+            for k in item:
+                if re.search(r'sex|Sex|gender|Gender|性別', k):
+                    v = str(item[k]).strip()
+                    if v and v != 'None':
+                        gender = v
+                        break
+
+            # 年齢
+            age = ''
+            for k in item:
+                if re.search(r'age|Age|年齢', k):
+                    v = str(item[k]).strip()
+                    if v and v != 'None':
+                        age = v
+                        break
+
+            h = hashlib.md5(f'{dt_text}{body or title}'.encode()).hexdigest()
             if h not in notified:
-                results.append({'date': dt_text, 'text': text, 'rating': rating, 'hash': h})
+                results.append({
+                    'date': dt_text,
+                    'title': title,
+                    'body': body,
+                    'text': body or title,
+                    'rating': rating,
+                    'reviewer_name': reviewer_name,
+                    'gender': gender,
+                    'age': age,
+                    'hash': h,
+                })
         except Exception:
             continue
     return results
@@ -311,13 +367,22 @@ def scrape_reviews(review_url, since_dt, notified):
 # ── Chatwork通知 ──────────────────────────────────────────────────
 
 def notify_chatwork(product_name, review, thumbnail_url):
-    stars  = ('★' * review['rating'] + '☆' * (5 - review['rating'])) if review['rating'] else '未評価'
+    rating = review.get('rating', 0)
+    stars  = ('★' * rating + '☆' * (5 - rating)) if rating else '未評価'
+    title  = review.get('title', '')
+    body   = review.get('body', review.get('text', ''))
+    name   = review.get('reviewer_name', '')
+    gender = review.get('gender', '')
+    age    = review.get('age', '')
+    poster = ' '.join(filter(None, [name, gender, age]))
     msg = (
         f"[info][title]🛒 新しいレビューが届きました！[/title]"
         f"📦 商品：{product_name}\n"
         f"📅 投稿日：{review['date']}\n"
         f"⭐ 評価：{stars}\n"
-        f"💬 {review['text']}"
+        + (f"👤 投稿者：{poster}\n" if poster else '')
+        + (f"📌 タイトル：{title}\n" if title else '')
+        + f"💬 {body}"
         f"[/info]"
     )
 
