@@ -102,6 +102,33 @@ def save_notified_batch(ws, product_name, reviews):
         ws.append_rows(rows, value_input_option='USER_ENTERED')
 
 
+# ── 稼働日チェック ────────────────────────────────────────────────
+
+def is_business_day():
+    """土日・祝日・長期休暇期間はFalseを返す"""
+    import jpholiday
+    today = datetime.now(JST).date()
+
+    # 土曜・日曜
+    if today.weekday() >= 5:
+        return False
+
+    # 日本の祝日（jpholidayが自動判定）
+    if jpholiday.is_holiday(today):
+        return False
+
+    # 年末年始（12/28〜1/4）
+    if (today.month == 12 and today.day >= 28) or \
+       (today.month == 1  and today.day <= 4):
+        return False
+
+    # お盆（8/10〜8/16）
+    if today.month == 8 and 10 <= today.day <= 16:
+        return False
+
+    return True
+
+
 # ── チェック対象期間 ──────────────────────────────────────────────
 
 def get_check_since():
@@ -289,6 +316,11 @@ def notify_chatwork(product_reviews):
 # ── メイン ────────────────────────────────────────────────────────
 
 def main():
+    if not is_business_day():
+        today = datetime.now(JST)
+        print(f'本日（{today:%Y-%m-%d %A}）は稼働対象外のためスキップします')
+        return
+
     since_dt = get_check_since()
     print(f'チェック対象: {since_dt:%Y-%m-%d %H:%M} 以降のレビュー\n')
 
