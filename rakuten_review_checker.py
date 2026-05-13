@@ -99,7 +99,7 @@ def save_notified(gc, product_name, h, review):
 # ── チェック対象期間 ──────────────────────────────────────────────
 
 def get_check_since():
-    return datetime.now(JST) - timedelta(days=30)
+    return datetime.now(JST) - timedelta(days=365)
 
 
 # ── 日付パース ────────────────────────────────────────────────────
