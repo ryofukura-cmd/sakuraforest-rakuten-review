@@ -79,21 +79,27 @@ def load_notified(gc):
     return set(r[9] for r in rows[1:] if len(r) >= 10)
 
 
-def save_notified(gc, product_name, h, review):
-    rating = review.get('rating', 0)
-    stars = ('★' * rating + '☆' * (5 - rating)) if rating else '未評価'
-    gc.open_by_key(SPREADSHEET_ID).worksheet('通知済み').append_row([
-        product_name,
-        review.get('date', ''),
-        stars,
-        review.get('title', ''),
-        review.get('body', ''),
-        review.get('reviewer_name', ''),
-        review.get('gender', ''),
-        review.get('age', ''),
-        datetime.now(JST).strftime('%Y-%m-%d %H:%M'),
-        h,
-    ])
+def save_notified_batch(ws, product_name, reviews):
+    """通知済みシートに複数行をまとめて追記"""
+    now = datetime.now(JST).strftime('%Y-%m-%d %H:%M')
+    rows = []
+    for rv in reviews:
+        rating = rv.get('rating', 0)
+        stars  = ('★' * rating + '☆' * (5 - rating)) if rating else '未評価'
+        rows.append([
+            product_name,
+            rv.get('date', ''),
+            stars,
+            rv.get('title', ''),
+            rv.get('body', ''),
+            rv.get('reviewer_name', ''),
+            rv.get('gender', ''),
+            rv.get('age', ''),
+            now,
+            rv['hash'],
+        ])
+    if rows:
+        ws.append_rows(rows, value_input_option='USER_ENTERED')
 
 
 # ── チェック対象期間 ──────────────────────────────────────────────
@@ -323,11 +329,11 @@ def main():
         notify_chatwork(product_reviews)
 
         print('スプレッドシートに記録中...')
+        ws_notified = gc.open_by_key(SPREADSHEET_ID).worksheet('通知済み')
         for p in product_reviews:
+            save_notified_batch(ws_notified, p['name'], p['reviews'])
             for rv in p['reviews']:
-                save_notified(gc, p['name'], rv['hash'], rv)
                 notified.add(rv['hash'])
-                time.sleep(1)
     else:
         print('\n新着レビューなし')
 
