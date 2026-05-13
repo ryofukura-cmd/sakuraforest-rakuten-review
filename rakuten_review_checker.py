@@ -292,7 +292,7 @@ def scrape_reviews(review_url, since_dt, notified):
         )
         page = context.new_page()
 
-        # レビュー関連のJSONレスポンスをすべて捕捉
+        # すべてのJSONレスポンスを捕捉してレビューAPIを特定する
         def on_response(response):
             try:
                 if response.status != 200:
@@ -301,10 +301,9 @@ def scrape_reviews(review_url, since_dt, notified):
                 if 'json' not in ct:
                     return
                 rurl = response.url
-                if any(kw in rurl for kw in ['review', 'Review', 'rvw', 'comment', 'rating']):
-                    body = response.json()
-                    captured_jsons.append({'url': rurl, 'data': body})
-                    print(f'  JSON捕捉: {rurl[:120]}')
+                body = response.json()
+                captured_jsons.append({'url': rurl, 'data': body})
+                print(f'  JSON捕捉: {rurl[:150]}')
             except Exception:
                 pass
 
