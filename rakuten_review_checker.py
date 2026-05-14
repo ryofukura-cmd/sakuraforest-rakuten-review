@@ -245,7 +245,12 @@ def build_message(product_reviews):
     SEP = '━━━━━━━━━━━━━━'
     total = sum(len(p['reviews']) for p in product_reviews)
 
+    today = datetime.now(JST)
+    weekdays = ['月曜日', '火曜日', '水曜日', '木曜日', '金曜日', '土曜日', '日曜日']
+    date_str = f'[ {today.year}年{today.month}月{today.day}日 {weekdays[today.weekday()]} ]'
+
     lines = [f'[info][title]【楽天市場レビュー通知】新しいレビューが {total}件 届きました[/title]', '']
+    lines += [date_str, '']
     lines += ['\\ お客様のレビュー速報 /', '']
 
     # 全体サマリー
