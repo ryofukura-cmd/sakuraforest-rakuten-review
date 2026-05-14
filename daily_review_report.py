@@ -133,7 +133,7 @@ def is_business_day():
 # ── チェック対象期間 ──────────────────────────────────────────────
 
 def get_check_since():
-    return datetime.now(JST) - timedelta(days=2)
+    return datetime.now(JST) - timedelta(days=7)  # TEST
 
 
 # ── 日付パース ────────────────────────────────────────────────────
