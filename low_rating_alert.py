@@ -16,6 +16,7 @@ JST = ZoneInfo('Asia/Tokyo')
 CHATWORK_TOKEN = os.environ['CHATWORK_API_TOKEN']
 CHATWORK_ROOM  = os.environ.get('CHATWORK_ROOM_ID', '436633458')
 SPREADSHEET_ID = os.environ['SPREADSHEET_ID']
+COMPANY_NAME   = os.environ.get('COMPANY_NAME', 'さくらフォレスト株式会社')
 LOW_RATING_MAX = 2
 
 WEEKDAYS_JA = ['月曜日', '火曜日', '水曜日', '木曜日', '金曜日', '土曜日', '日曜日']
@@ -238,7 +239,7 @@ def build_alert_message(product_name, rv, display_url):
     body  = rv.get('body', '')
 
     lines = [f'[info][title]⚠ 低評価レビュー {stars} {rating}/5[/title]']
-    lines += [date_str, '']
+    lines += [f'【{COMPANY_NAME}】', date_str, '']
     lines += [f'■ {product_name}', '']
     lines.append(f'投稿日：{rv.get("date", "")}')
     lines.append(profile)

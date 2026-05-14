@@ -16,6 +16,7 @@ JST = ZoneInfo('Asia/Tokyo')
 CHATWORK_TOKEN = os.environ['CHATWORK_API_TOKEN']
 CHATWORK_ROOM  = os.environ.get('CHATWORK_ROOM_ID', '436382401')
 SPREADSHEET_ID = os.environ['SPREADSHEET_ID']
+COMPANY_NAME   = os.environ.get('COMPANY_NAME', 'さくらフォレスト株式会社')
 
 HEADERS = {
     'User-Agent': (
@@ -249,7 +250,7 @@ def build_message(product_reviews):
     weekdays = ['月曜日', '火曜日', '水曜日', '木曜日', '金曜日', '土曜日', '日曜日']
     date_str = f'[ {today.year}年{today.month}月{today.day}日 {weekdays[today.weekday()]} ]'
 
-    lines = [f'[info][title]【楽天市場レビュー通知】新しいレビューが {total}件 届きました[/title]', '']
+    lines = [f'[info][title]【{COMPANY_NAME}】楽天市場レビュー通知 - 新しいレビューが {total}件 届きました[/title]', '']
     lines += [date_str, '']
     lines += ['\\ お客様のレビュー速報 /', '']
 

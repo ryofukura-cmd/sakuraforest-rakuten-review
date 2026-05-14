@@ -10,6 +10,7 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   SPREADSHEET_ID: '18htlkdwHKncu8zKgtytQVGqm2SHdSteqI25cFTACtg8'
   CHATWORK_ROOM_ID: '436382401'
+  COMPANY_NAME: 'さくらフォレスト株式会社'
 
 permissions:
   id-token: write
