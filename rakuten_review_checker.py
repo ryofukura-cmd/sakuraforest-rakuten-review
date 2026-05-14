@@ -355,6 +355,15 @@ def main():
             'reviews':     reviews,
         })
 
+    # 同名商品をマージしてレビュー件数の多い順に並べる
+    merged: dict[str, dict] = {}
+    for p in product_reviews:
+        if p['name'] in merged:
+            merged[p['name']]['reviews'].extend(p['reviews'])
+        else:
+            merged[p['name']] = {**p}
+    product_reviews = sorted(merged.values(), key=lambda x: len(x['reviews']), reverse=True)
+
     if product_reviews:
         total = sum(len(p['reviews']) for p in product_reviews)
         print(f'\n合計 {total} 件を通知送信中...')
