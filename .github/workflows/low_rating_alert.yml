@@ -1,21 +1,22 @@
-name: 楽天レビューチェッカー
+name: 【楽天】低評価レビューアラート
 
 on:
   schedule:
-    # 毎朝9:00 JST（= UTC 0:00）に1回実行
-    - cron: '0 0 * * *'
-  workflow_dispatch:  # 手動実行ボタン
+    # 9:00〜17:00 JST（= UTC 0:00〜8:00）、平日のみ
+    - cron: '0 0-8 * * 1-5'
+  workflow_dispatch:
 
 env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   SPREADSHEET_ID: '18htlkdwHKncu8zKgtytQVGqm2SHdSteqI25cFTACtg8'
-  CHATWORK_ROOM_ID: '436382401'
+  CHATWORK_ROOM_ID: '436633458'
 
 permissions:
   id-token: write
   contents: read
 
 jobs:
-  check-reviews:
+  low-rating-alert:
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -36,7 +37,7 @@ jobs:
       - name: Pythonパッケージをインストール
         run: pip install -r requirements.txt
 
-      - name: レビューチェック実行
+      - name: 低評価レビューアラート実行
         env:
           CHATWORK_API_TOKEN: ${{ secrets.CHATWORK_API_TOKEN }}
-        run: python rakuten_review_checker.py
+        run: python low_rating_alert.py
