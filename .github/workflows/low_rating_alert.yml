@@ -1,6 +1,8 @@
 name: 【楽天】低評価レビューアラート
 
 on:
+  schedule:
+    - cron: '0 0-8 * * 1-5'   # 平日 9:00〜17:00 JST（UTC 0〜8時）毎時
   workflow_dispatch:
 
 env:
