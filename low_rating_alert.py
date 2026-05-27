@@ -270,7 +270,7 @@ def main():
         print(f'本日（{today:%Y-%m-%d}）は稼働対象外のためスキップします')
         return
 
-    since_dt = datetime.now(JST) - timedelta(hours=2)
+    since_dt = datetime.now(JST) - timedelta(hours=48)
     print(f'チェック対象: {since_dt:%Y-%m-%d %H:%M} 以降の低評価（★1-2）レビュー\n')
 
     gc       = setup_gspread()
